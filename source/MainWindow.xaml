@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:CSVDiff"
         xmlns:vm="clr-namespace:CSVDiff.ViewModel"
         mc:Ignorable="d"
+        Icon="/CSVDiff_Logo.ico"
         Title="CSV Diff" Height="800" Width="700">
     <Window.DataContext>
         <vm:MainWindowViewModel/>

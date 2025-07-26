@@ -7,7 +7,6 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
-using System.Windows.Documents;
 using System.Windows.Input;
 
 namespace CSVDiff.ViewModel
@@ -158,14 +157,20 @@ namespace CSVDiff.ViewModel
 
         private static FileViewModel? LoadFile()
         {
-            if (TryBrowseForFile(out string selectedFilepath))
+            try
             {
-                if (TryPeekAtCVS(selectedFilepath, out var newFileViewModel))
+                if (TryBrowseForFile(out string selectedFilepath))
                 {
-                    return newFileViewModel;
+                    if (TryPeekAtCVS(selectedFilepath, out var newFileViewModel))
+                    {
+                        return newFileViewModel;
+                    }
                 }
             }
-
+            catch
+            {
+                // TODO Add logs
+            }
             return null;
         }
 
@@ -175,18 +180,41 @@ namespace CSVDiff.ViewModel
             if (!System.IO.File.Exists(filepath))
                 return false;
 
-            using var reader = new StreamReader(filepath);
-            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+            var fileInfo = new FileInfo(filepath);
+            FileInfo streamFile = fileInfo;
+            bool isUsingCopy = false;
 
-            if (csv.Read() && csv.ReadHeader())
+            try
             {
-                var fields = GetFields(csv).ToArray();
-                using var dr = new CsvDataReader(csv);
-                var dataTable = new DataTable();
-                dataTable.Load(dr);
-                var fileInfo = new FileInfo(filepath);
-                fileViewModel = new FileViewModel(fileInfo, fields, dataTable);
-                return true;
+                if (fileInfo.IsFileLocked())
+                {
+                    streamFile = fileInfo.CopyFile();
+                    isUsingCopy = true;
+                }
+
+                using var reader = new StreamReader(streamFile.FullName);
+                using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+
+                if (csv.Read() && csv.ReadHeader())
+                {
+                    var fields = GetFields(csv).ToArray();
+                    using var dr = new CsvDataReader(csv);
+                    var dataTable = new DataTable();
+                    dataTable.Load(dr);
+                    fileViewModel = new FileViewModel(streamFile, fields, dataTable);
+                    return true;
+                }
+            }
+            catch
+            {
+                // TODO Add logs
+            }
+            finally
+            {
+                if (isUsingCopy && System.IO.File.Exists(streamFile.FullName))
+                {
+                    System.IO.File.Delete(streamFile.FullName);
+                }
             }
 
             return false;
@@ -202,6 +230,7 @@ namespace CSVDiff.ViewModel
                 }
             }
         }
+
 
         private void Compare()
         {
