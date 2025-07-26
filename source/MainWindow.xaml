@@ -1,0 +1,166 @@
+﻿<Window x:Class="CSVDiff.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CSVDiff"
+        xmlns:vm="clr-namespace:CSVDiff.ViewModel"
+        mc:Ignorable="d"
+        Title="CSV Diff" Height="800" Width="700">
+    <Window.DataContext>
+        <vm:MainWindowViewModel/>
+    </Window.DataContext>
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="Sources">
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="5"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="5"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="80"/>
+                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock 
+                        VerticalAlignment="Center"
+                        TextAlignment="Right"
+                        Text="Previous File"/>
+
+                        <TextBlock
+                        Grid.Row="2" 
+                        VerticalAlignment="Center"
+                        TextAlignment="Right"
+                        Text="Latest File"/>
+
+                        <Button Grid.Row="0" 
+                                Grid.Column="2"
+                                BorderThickness="0"
+                                Foreground="DimGray"
+                                Command="{Binding LoadPreviousFileCommand, Mode=OneTime}" 
+                                Content="{Binding PreviousFile, UpdateSourceTrigger=PropertyChanged, TargetNullValue=Select File}"/>
+
+                        <Button 
+                                Grid.Row="2" 
+                                Grid.Column="2"
+                                BorderThickness="0"
+                            Foreground="DimGray"
+                                Command="{Binding LoadCurrentFileCommand, Mode=OneTime}" 
+                                Content="{Binding LatestFile, UpdateSourceTrigger=PropertyChanged, TargetNullValue=Select File}"/>
+
+                    </Grid>
+
+                    <Button ToolTip="Swap Files" BorderThickness="0" Background="Transparent"
+                        Grid.Column="2" 
+                        Width="28" 
+                        Content="{DynamicResource SwapIcon}"
+                        Command="{Binding SwapFilesCommand, Mode=OneTime}" HorizontalContentAlignment="Center"/>
+                </Grid>
+
+            </Grid>
+
+        </GroupBox>
+
+        <GroupBox Grid.Row="1" Header="Join on">
+            <StackPanel>
+
+                <ItemsControl 
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ItemsSource="{Binding JoinOnColumnList}">
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ColumnViewModel}">
+                            <StackPanel Orientation="Horizontal" Margin="2">
+                                <ToggleButton Content="{Binding}" IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Grid.Row="2" Header="Diff on">
+            <StackPanel>
+
+                <ItemsControl 
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ItemsSource="{Binding DiffOnColumnList}">
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ColumnViewModel}">
+                            <StackPanel Orientation="Horizontal" Margin="2">
+                                <ToggleButton Content="{Binding}" IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+
+            </StackPanel>
+        </GroupBox>
+
+        <Button 
+            Grid.Row="3" 
+            Margin="5 10"
+            Height="30"
+            Command="{Binding CompareCommand, Mode=OneTime}" Content="Compare"/>
+
+        <GroupBox Grid.Row="4" Header="Preview">
+            <DataGrid 
+                Grid.Row="2"
+                AutoGenerateColumns="True"
+                CanUserAddRows="False"
+                CanUserDeleteRows="False"
+                CanUserResizeRows="False"
+                ItemsSource="{Binding DiffResult, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+            </DataGrid>
+        </GroupBox>
+
+        <Button Grid.Row="5" 
+            ToolTip="Export Result"
+            Background="Transparent"
+            BorderThickness="0"
+            Command="{Binding ExportDiffCommand, Mode=OneTime}"
+            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+            Content="{DynamicResource ExportIcon}">
+        </Button>
+        
+    </Grid>
+</Window>
