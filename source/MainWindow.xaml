@@ -7,7 +7,7 @@
         xmlns:vm="clr-namespace:CSVDiff.ViewModel"
         mc:Ignorable="d"
         Icon="/CSVDiff_Logo.ico"
-        Title="CSV Diff" Height="800" Width="700">
+        Title="CSV Diff" Height="800" Width="750">
     <Window.DataContext>
         <vm:MainWindowViewModel/>
     </Window.DataContext>
@@ -18,6 +18,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="5"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
@@ -100,7 +102,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <Grid>
+                    <Grid Margin="0 10">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="5"/>
@@ -207,7 +209,49 @@
             </DataGrid>
         </GroupBox>
 
-        <Button Grid.Row="5" 
+        <GroupBox Grid.Row="6" Header="Export Options">
+
+            <StackPanel>
+
+                <ToolBar>
+                    <Button Content="Merge Selection" Click="OnMergeSelection_Button_Click"/>
+                    <Button Content="Unmerge Selection" Click="OnUnmergeSelection_Button_Click"/>
+                </ToolBar>
+                
+                <ListView 
+                    x:Name="MergeableColumnListView"
+                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                    ItemsSource="{Binding MergeableColumnList}">
+
+                    <ListView.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:MergeableColumnViewModel}">
+                            <Grid MinWidth="100" Height="30" Background="{Binding MergeGroupColor, UpdateSourceTrigger=PropertyChanged}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock 
+                                    Margin="4 0 0 0"
+                                    Text="{Binding}" TextAlignment="Center" VerticalAlignment="Center" Background="White"/>
+                                <CheckBox 
+                                    Margin="4"
+                                    VerticalAlignment="Center"
+                                    Grid.Column="1"
+                                    IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                </ListView>
+
+            </StackPanel>
+        </GroupBox>
+
+        <Button Grid.Row="7" 
             ToolTip="Export Result"
             Background="Transparent"
             BorderThickness="0"

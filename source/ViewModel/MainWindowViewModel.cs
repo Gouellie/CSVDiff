@@ -4,10 +4,12 @@ using CsvHelper;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Data.Common;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Windows.Input;
+using System.Windows.Media;
 
 namespace CSVDiff.ViewModel
 {
@@ -52,11 +54,22 @@ namespace CSVDiff.ViewModel
 
         public ObservableCollection<ColumnViewModel> JoinOnColumnList { get; } = [];
         public ObservableCollection<ColumnViewModel> DiffOnColumnList { get; } = [];
+        public ObservableCollection<MergeableColumnViewModel> MergeableColumnList { get; } = [];
 
         private bool SuspendRefreshMatchList;
 
         private DataTable? _diffResult;
-        public DataTable? DiffResult { get => _diffResult; private set => SetProperty(ref _diffResult, value); }
+        public DataTable? DiffResult 
+        {
+            get => _diffResult;
+            private set 
+            {
+                if (SetProperty(ref _diffResult, value))
+                {
+                    RefreshMergeColumnList();
+                }
+            } 
+        }
 
         public MainWindowViewModel()
         {
@@ -134,6 +147,19 @@ namespace CSVDiff.ViewModel
             }
 
             DiffResult = null;
+        }
+
+        private void RefreshMergeColumnList()
+        {
+            MergeableColumnList.Clear();
+            if (DiffResult == null)
+                return;
+
+            for (int col = 0;  col < DiffResult.Columns.Count; col++)
+            {
+                SolidColorBrush brush = new(Helpers.GetNewRandomColor(col));
+                MergeableColumnList.Add(new MergeableColumnViewModel(DiffResult.Columns[col].ColumnName, col, brush) { Selected = true });
+            }
         }
 
         private static bool TryBrowseForFile(out string selectedFilepath)
@@ -230,7 +256,6 @@ namespace CSVDiff.ViewModel
                 }
             }
         }
-
 
         private void Compare()
         {
@@ -454,9 +479,9 @@ namespace CSVDiff.ViewModel
             }
         }
 
-        private static string GetJoinOnValue(DataRow row, IEnumerable<int> joinOnIndexes)
+        private static string GetJoinOnValue(DataRow row, IEnumerable<int> joinOnIndexes, string separator = "")
         {
-            return string.Join(string.Empty, joinOnIndexes.Select(i => row[i].ToString()));
+            return string.Join(separator, joinOnIndexes.Select(i => row[i].ToString()));
         }
 
         private static DataRow? GetMatchingRow(DataTable table, string joinValue, IEnumerable<int> joinOnIndexes)
@@ -485,9 +510,59 @@ namespace CSVDiff.ViewModel
             return GetNumericCellValue(current) - GetNumericCellValue(latest);
         }
 
+        public static void OpenWithDefaultProgram(string path)
+        {
+            using var process = new Process();
+
+            process.StartInfo.FileName = "explorer";
+            process.StartInfo.Arguments = "\"" + path + "\"";
+            process.Start();
+        }
+
+        internal void MergeColumns(IList<MergeableColumnViewModel> selection)
+        {
+            if (MergeableColumnList.Count == 0) 
+                return;
+            var usedGroups = MergeableColumnList.Where(c => selection.Contains(c) == false).Select(c => c.MergeGroup).ToHashSet();
+            int mergeGroup = 0;
+            while (usedGroups.Contains(mergeGroup))
+            {
+                mergeGroup++;
+            }
+            SolidColorBrush brush = new(Helpers.GetNewRandomColor(mergeGroup));
+            foreach (var item in selection)
+            {
+                item.MergeGroup = mergeGroup;
+                item.MergeGroupColor = brush;
+            }
+        }
+
+        internal void UnmergeColumns(IList<MergeableColumnViewModel> selection)
+        {
+            if (MergeableColumnList.Count == 0)
+                return;
+            var usedGroups = MergeableColumnList.Where(c => selection.Contains(c) == false).Select(c => c.MergeGroup).ToHashSet();
+            foreach (var item in selection)
+            {
+                int mergeGroup = 0;
+                while (usedGroups.Contains(mergeGroup))
+                {
+                    mergeGroup++;
+                }
+
+                usedGroups.Add(mergeGroup);
+                SolidColorBrush brush = new(Helpers.GetNewRandomColor(mergeGroup));
+                item.MergeGroup = mergeGroup;
+                item.MergeGroupColor = brush;
+            }
+        }
+
         private void ExportDiff()
         {
-            if (DiffResult == null)
+            if (DiffResult == null || MergeableColumnList.Count == 0)
+                return;
+
+            if (MergeableColumnList.All(c => c.Selected == false))
                 return;
 
             SaveFileDialog saveFileDialog = new()
@@ -503,33 +578,32 @@ namespace CSVDiff.ViewModel
             using var writer = new StreamWriter(saveFileDialog.FileName);
             using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
 
-            // Write the header
-            foreach (DataColumn column in DiffResult.Columns)
+            foreach (var mergedGroup in MergeableColumnList.GroupBy(c => c.MergeGroup))
             {
-                csv.WriteField(column.ColumnName);
+                var mergedValue = string.Join(" ", mergedGroup.Where(c => c.Selected));
+                if (!string.IsNullOrWhiteSpace(mergedValue))
+                {
+                    csv.WriteField(mergedValue);
+                }
             }
             csv.NextRecord();
 
             // Write the rows
             foreach (DataRow row in DiffResult.Rows)
             {
-                foreach (DataColumn column in DiffResult.Columns)
+                foreach (var mergedGroup in MergeableColumnList.GroupBy(c => c.MergeGroup))
                 {
-                    csv.WriteField(row[column]);
+                    var indexOfColumns = GetIndexOfColumns(DiffResult, mergedGroup.Where(c => c.Selected).Select(c => c.Name)).ToArray();
+                    if (indexOfColumns.Length == 0)
+                        continue;
+
+                    var mergeRowValue = GetJoinOnValue(row, indexOfColumns, " ");
+                    csv.WriteField(mergeRowValue);
                 }
                 csv.NextRecord();
             }
 
             OpenWithDefaultProgram(saveFileDialog.FileName);
-        }
-
-        public static void OpenWithDefaultProgram(string path)
-        {
-            using var process = new Process();
-
-            process.StartInfo.FileName = "explorer";
-            process.StartInfo.Arguments = "\"" + path + "\"";
-            process.Start();
         }
     }
 #pragma warning restore CS8618
