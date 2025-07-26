@@ -121,28 +121,17 @@ namespace CSVDiff.ViewModel
                 return;
             }
 
-            HashSet<string> matches = [];
-            foreach (var match in LatestFile.Headers.Where(h => PreviousFile.Headers.Contains(h)))
-            {
-                if (JoinOnColumnList.Any(c => c.Name == match) == false)
-                {
-                    JoinOnColumnList.Add(new ColumnViewModel(match));
-                }
-                if (DiffOnColumnList.Any(c => c.Name == match) == false)
-                {
-                    DiffOnColumnList.Add(new ColumnViewModel(match));
-                }
-                matches.Add(match);
-            }
+            List<string> matches = [.. LatestFile.Headers.Where(PreviousFile.Headers.Contains)];
+            if (JoinOnColumnList.Count == matches.Count && matches.All(m => JoinOnColumnList.Select(c => c.Name).Contains(m)))
+                return;
 
-            foreach (var colToClean in JoinOnColumnList.Where(c => matches.Contains(c.Name) == false).ToArray())
-            {
-                JoinOnColumnList.Remove(colToClean);
-            }
+            JoinOnColumnList.Clear();
+            DiffOnColumnList.Clear();
 
-            foreach (var colToClean in DiffOnColumnList.Where(c => matches.Contains(c.Name) == false).ToArray())
+            foreach (var match in matches)
             {
-                DiffOnColumnList.Remove(colToClean);
+                JoinOnColumnList.Add(new ColumnViewModel(match));
+                DiffOnColumnList.Add(new ColumnViewModel(match));
             }
 
             DiffResult = null;
@@ -246,11 +235,11 @@ namespace CSVDiff.ViewModel
 
         public static DataTable ReduceTable(DataTable table, IEnumerable<string> joinOn, IEnumerable<string> aggregateOn) 
         {
-            var joinOnIndexes = GetIndexOfColumn(table, joinOn).ToArray();
+            var joinOnIndexes = GetIndexOfColumns(table, joinOn).ToArray();
             if (joinOnIndexes.Any(i => i < 0))
                 return table;
 
-            var aggregateIndexes = GetIndexOfColumn(table, aggregateOn).ToArray();
+            var aggregateIndexes = GetIndexOfColumns(table, aggregateOn).ToArray();
             if (aggregateIndexes.Any(i => i < 0))
                 return table;
 
@@ -325,15 +314,15 @@ namespace CSVDiff.ViewModel
 
         public static DataTable CompareTables(DataTable latestTable, DataTable previousTable, IEnumerable<string> joinOn, IEnumerable<string> diffOn)
         {
-            var diffTable = latestTable.Copy();
-
-            var joinOnDiffTableColumnIndex = GetIndexOfColumn(latestTable, joinOn).ToArray();
+            var joinOnDiffTableColumnIndex = GetIndexOfColumns(latestTable, joinOn).ToArray();
             if (joinOnDiffTableColumnIndex.Any(i => i < 0))
-                return diffTable;
+                return latestTable;
 
-            var joinOnPreviousColumnIndex = GetIndexOfColumn(previousTable, joinOn).ToArray();
+            var joinOnPreviousColumnIndex = GetIndexOfColumns(previousTable, joinOn).ToArray();
             if (joinOnPreviousColumnIndex.Any(i => i < 0))
-                return diffTable;
+                return latestTable;
+
+            var diffTable = latestTable.Copy();
 
             List<int> removeRows = [];
             for (int row = 0; row < diffTable.Rows.Count; row++)
@@ -341,7 +330,7 @@ namespace CSVDiff.ViewModel
                 var currentRow = diffTable.Rows[row];
                 var joinOnValue = GetJoinOnValue(currentRow, joinOnDiffTableColumnIndex);
 
-                DataRow? previousRow = getMatchingRow(joinOnValue);
+                DataRow? previousRow = GetMatchingRow(previousTable, joinOnValue, joinOnPreviousColumnIndex);
 
                 bool zeroedRow = true;
 
@@ -374,7 +363,7 @@ namespace CSVDiff.ViewModel
                 }
             }
 
-            var diffOnDiffTableColumnIndex = GetIndexOfColumn(latestTable, diffOn).ToHashSet();
+            var diffOnDiffTableColumnIndex = GetIndexOfColumns(latestTable, diffOn).ToHashSet();
 
             for (int col = diffTable.Columns.Count - 1; col >= 0; col--)
             {
@@ -390,26 +379,45 @@ namespace CSVDiff.ViewModel
             }
 
             return diffTable;
-
-            DataRow? getMatchingRow(string joinValue)
-            {
-                for (int row = 0; row < previousTable.Rows.Count; row++)
-                {
-                    if (GetJoinOnValue(previousTable.Rows[row], joinOnPreviousColumnIndex) == joinValue)
-                    {
-                        return previousTable.Rows[row];
-                    }
-                }
-                return null;
-            }
         }
 
-        private static DataTable JoinTable(DataTable diffResult, DataTable data, string[] joinOnList)
+        private static DataTable JoinTable(DataTable diffResult, DataTable joinTable, string[] joinOnList)
         {
-            return diffResult;
+            var joinOnDiffTableColumnIndex = GetIndexOfColumns(diffResult, joinOnList).ToArray();
+            if (joinOnDiffTableColumnIndex.Any(i => i < 0))
+                return diffResult;
+
+            var joinOnPreviousColumnIndex = GetIndexOfColumns(joinTable, joinOnList).ToList();
+            if (joinOnPreviousColumnIndex.Any(i => i < 0))
+                return diffResult;
+
+            var diffResultWithJoin = diffResult.Copy();
+
+            for (int col = 0; col < joinTable.Columns.Count; col++)
+            {
+                if (joinOnPreviousColumnIndex.Contains(col))
+                    continue;
+
+                var indexOfNewCol = diffResultWithJoin.Columns.Count;
+                diffResultWithJoin.Columns.Add(joinTable.Columns[col].ColumnName);
+
+                for (int row = 0; row < diffResultWithJoin.Rows.Count; row++)
+                {
+                    var currentRow = diffResultWithJoin.Rows[row];
+                    var joinOnValue = GetJoinOnValue(currentRow, joinOnDiffTableColumnIndex);
+
+                    DataRow? joinRow = GetMatchingRow(joinTable, joinOnValue, joinOnPreviousColumnIndex);
+                    if (joinRow == null)
+                        continue;
+
+                    currentRow[indexOfNewCol] = joinRow[col];
+                }
+            }
+
+            return diffResultWithJoin;
         }
 
-        private static IEnumerable<int> GetIndexOfColumn(DataTable table, IEnumerable<string> columnNames)
+        private static IEnumerable<int> GetIndexOfColumns(DataTable table, IEnumerable<string> columnNames)
         {
             foreach (var columnName in columnNames)
             {
@@ -419,7 +427,19 @@ namespace CSVDiff.ViewModel
 
         private static string GetJoinOnValue(DataRow row, IEnumerable<int> joinOnIndexes)
         {
-            return string.Join("", joinOnIndexes.Select(i => row[i].ToString()));
+            return string.Join(string.Empty, joinOnIndexes.Select(i => row[i].ToString()));
+        }
+
+        private static DataRow? GetMatchingRow(DataTable table, string joinValue, IEnumerable<int> joinOnIndexes)
+        {
+            for (int row = 0; row < table.Rows.Count; row++)
+            {
+                if (GetJoinOnValue(table.Rows[row], joinOnIndexes) == joinValue)
+                {
+                    return table.Rows[row];
+                }
+            }
+            return null;
         }
 
         private static double GetNumericCellValue(object cell)
