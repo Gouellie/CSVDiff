@@ -16,8 +16,8 @@ namespace CSVDiff.ViewModel
     internal class MainWindowViewModel : ObservableObject
     {
         private const string INVALID = "<multi-values>";
-        public ICommand LoadPreviousFileCommand { get; }
-        public ICommand LoadCurrentFileCommand { get; }
+        public RelayCommand<string> LoadFileCommand { get; }
+        public RelayCommand<string> ClearFileCommand { get; }
         public ICommand SwapFilesCommand { get; }
         public ICommand CompareCommand { get; }
         public ICommand ExportDiffCommand { get; }
@@ -48,6 +48,9 @@ namespace CSVDiff.ViewModel
             }
         }
 
+        private FileViewModel? _optionalJoinFile;
+        public FileViewModel? OptionalJoinFile{ get => _optionalJoinFile; set => SetProperty(ref _optionalJoinFile, value); }
+
         public ObservableCollection<ColumnViewModel> JoinOnColumnList { get; } = [];
         public ObservableCollection<ColumnViewModel> DiffOnColumnList { get; } = [];
 
@@ -60,11 +63,43 @@ namespace CSVDiff.ViewModel
         {
             CompareCommand = new RelayCommand(Compare);
 
-            LoadPreviousFileCommand = new RelayCommand(() => PreviousFile = LoadFile());
-            LoadCurrentFileCommand = new RelayCommand(() => LatestFile = LoadFile());
+            ClearFileCommand = new RelayCommand<string>(ClearFile);
+            LoadFileCommand = new RelayCommand<string>(LoadFile);
 
             SwapFilesCommand = new RelayCommand(SwapFiles);
             ExportDiffCommand = new RelayCommand(ExportDiff);
+        }
+
+        private void LoadFile(string? file)
+        {
+            switch (file)
+            {
+                case "previous":
+                    PreviousFile = LoadFile();
+                    break;
+                case "latest":
+                    LatestFile = LoadFile();
+                    break;
+                case "optional":
+                    OptionalJoinFile = LoadFile();
+                    break;
+            }
+        }
+
+        private void ClearFile(string? file)
+        {
+            switch (file)
+            {
+                case "previous":
+                    PreviousFile = null;
+                    break;
+                case "latest":
+                    LatestFile = null;
+                    break;
+                case "optional":
+                    OptionalJoinFile = null;
+                    break;
+            }
         }
 
         private void SwapFiles()
@@ -79,18 +114,35 @@ namespace CSVDiff.ViewModel
             if (SuspendRefreshMatchList)
                 return;
 
-            JoinOnColumnList.Clear();
-            DiffOnColumnList.Clear();
-
             if (PreviousFile == null || LatestFile == null)
             {
+                JoinOnColumnList.Clear();
+                DiffOnColumnList.Clear();
                 return;
             }
-            
+
+            HashSet<string> matches = [];
             foreach (var match in LatestFile.Headers.Where(h => PreviousFile.Headers.Contains(h)))
             {
-                JoinOnColumnList.Add(new ColumnViewModel(match));
-                DiffOnColumnList.Add(new ColumnViewModel(match));
+                if (JoinOnColumnList.Any(c => c.Name == match) == false)
+                {
+                    JoinOnColumnList.Add(new ColumnViewModel(match));
+                }
+                if (DiffOnColumnList.Any(c => c.Name == match) == false)
+                {
+                    DiffOnColumnList.Add(new ColumnViewModel(match));
+                }
+                matches.Add(match);
+            }
+
+            foreach (var colToClean in JoinOnColumnList.Where(c => matches.Contains(c.Name) == false).ToArray())
+            {
+                JoinOnColumnList.Remove(colToClean);
+            }
+
+            foreach (var colToClean in DiffOnColumnList.Where(c => matches.Contains(c.Name) == false).ToArray())
+            {
+                DiffOnColumnList.Remove(colToClean);
             }
 
             DiffResult = null;
@@ -182,7 +234,14 @@ namespace CSVDiff.ViewModel
             var reducedLatest   = ReduceTable(LatestFile.Data, joinOnList, diffOnList);
             var reducedPrevious = ReduceTable(PreviousFile.Data, joinOnList, diffOnList);
 
-            DiffResult = CompareTables(reducedLatest, reducedPrevious, joinOnList, diffOnList);
+            var diffResult = CompareTables(reducedLatest, reducedPrevious, joinOnList, diffOnList);
+
+            if (OptionalJoinFile != null)
+            {
+                diffResult = JoinTable(diffResult, OptionalJoinFile.Data, joinOnList);
+            }
+
+            DiffResult = diffResult;
         }
 
         public static DataTable ReduceTable(DataTable table, IEnumerable<string> joinOn, IEnumerable<string> aggregateOn) 
@@ -343,6 +402,11 @@ namespace CSVDiff.ViewModel
                 }
                 return null;
             }
+        }
+
+        private static DataTable JoinTable(DataTable diffResult, DataTable data, string[] joinOnList)
+        {
+            return diffResult;
         }
 
         private static IEnumerable<int> GetIndexOfColumn(DataTable table, IEnumerable<string> columnNames)

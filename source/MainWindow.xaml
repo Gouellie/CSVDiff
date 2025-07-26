@@ -24,64 +24,117 @@
 
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="5"/>
-                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
                 <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="5"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="5"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="5"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="5"/>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock 
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="5"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock 
                         VerticalAlignment="Center"
                         TextAlignment="Right"
                         Text="Previous File"/>
 
-                        <TextBlock
+                            <TextBlock
                         Grid.Row="2" 
                         VerticalAlignment="Center"
                         TextAlignment="Right"
                         Text="Latest File"/>
 
-                        <Button Grid.Row="0" 
+                            <Button Grid.Row="0" 
                                 Grid.Column="2"
                                 BorderThickness="0"
                                 Foreground="DimGray"
-                                Command="{Binding LoadPreviousFileCommand, Mode=OneTime}" 
+                                CommandParameter="previous"
+                                Command="{Binding LoadFileCommand, Mode=OneTime}" 
                                 Content="{Binding PreviousFile, UpdateSourceTrigger=PropertyChanged, TargetNullValue=Select File}"/>
 
-                        <Button 
+                            <Button 
                                 Grid.Row="2" 
                                 Grid.Column="2"
                                 BorderThickness="0"
-                            Foreground="DimGray"
-                                Command="{Binding LoadCurrentFileCommand, Mode=OneTime}" 
+                                Foreground="DimGray"
+                                CommandParameter="latest"
+                                Command="{Binding LoadFileCommand, Mode=OneTime}" 
                                 Content="{Binding LatestFile, UpdateSourceTrigger=PropertyChanged, TargetNullValue=Select File}"/>
 
-                    </Grid>
+                        </Grid>
 
-                    <Button ToolTip="Swap Files" BorderThickness="0" Background="Transparent"
+                        <Button ToolTip="Swap Files" BorderThickness="0" Background="Transparent"
                         Grid.Column="2" 
                         Width="28" 
                         Content="{DynamicResource SwapIcon}"
                         Command="{Binding SwapFilesCommand, Mode=OneTime}" HorizontalContentAlignment="Center"/>
+                    </Grid>
+
+                </Grid>
+
+                <Grid Grid.Row="1">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="5"/>
+                            <ColumnDefinition Width="28"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock 
+                                VerticalAlignment="Center"
+                                TextAlignment="Right"
+                                Text="Optional Join"/>
+
+                            <Button Grid.Row="0" 
+                                Grid.Column="2"
+                                BorderThickness="0"
+                                Foreground="DimGray"
+                                CommandParameter="optional"
+                                Command="{Binding LoadFileCommand, Mode=OneTime}" 
+                                Content="{Binding OptionalJoinFile, UpdateSourceTrigger=PropertyChanged, TargetNullValue=Select File}"/>
+
+                        </Grid>
+
+                        <Button Grid.Column="2" Content="X" BorderThickness="0" Foreground="DimGray" 
+                                CommandParameter="optional"
+                                Command="{Binding ClearFileCommand}"/>
+
+                    </Grid>
+
                 </Grid>
 
             </Grid>
