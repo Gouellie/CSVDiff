@@ -224,10 +224,19 @@ namespace CSVDiff.ViewModel
 
                 if (csv.Read() && csv.ReadHeader())
                 {
-                    var fields = GetFields(csv).ToArray();
+                    var fields = GetFields(csv).Where(f => string.IsNullOrWhiteSpace(f) == false).ToList();
                     using var dr = new CsvDataReader(csv);
                     var dataTable = new DataTable();
                     dataTable.Load(dr);
+
+                    for (int col = dataTable.Columns.Count - 1; col >= 0; col--)
+                    {
+                        if (fields.Contains(dataTable.Columns[col].ColumnName) == false)
+                        {
+                            dataTable.Columns.RemoveAt(col);
+                        }
+                    }
+
                     fileViewModel = new FileViewModel(streamFile, fields, dataTable);
                     return true;
                 }
@@ -438,19 +447,23 @@ namespace CSVDiff.ViewModel
 
         private static DataTable JoinTable(DataTable diffResult, DataTable joinTable, string[] joinOnList)
         {
-            var joinOnDiffTableColumnIndex = GetIndexOfColumns(diffResult, joinOnList).ToArray();
-            if (joinOnDiffTableColumnIndex.Any(i => i < 0))
+            // Partial match is allowed for optional join
+            var joinOnTableColumnIndex = GetIndexOfColumns(joinTable, joinOnList).Where(i => i >= 0).ToList();
+            if (joinOnTableColumnIndex.Count == 0)
                 return diffResult;
 
-            var joinOnPreviousColumnIndex = GetIndexOfColumns(joinTable, joinOnList).ToList();
-            if (joinOnPreviousColumnIndex.Any(i => i < 0))
+            // Retrieving the official join list based on the columns found on the join table
+            var partialMatchJoinList = joinOnTableColumnIndex.Select(i => joinTable.Columns[i].ColumnName).ToArray();
+
+            var joinOnDiffTableColumnIndex = GetIndexOfColumns(diffResult, partialMatchJoinList).ToArray();
+            if (joinOnDiffTableColumnIndex.Any(i => i < 0))
                 return diffResult;
 
             var diffResultWithJoin = diffResult.Copy();
 
             for (int col = 0; col < joinTable.Columns.Count; col++)
             {
-                if (joinOnPreviousColumnIndex.Contains(col))
+                if (joinOnTableColumnIndex.Contains(col))
                     continue;
 
                 var indexOfNewCol = diffResultWithJoin.Columns.Count;
@@ -461,7 +474,7 @@ namespace CSVDiff.ViewModel
                     var currentRow = diffResultWithJoin.Rows[row];
                     var joinOnValue = GetJoinOnValue(currentRow, joinOnDiffTableColumnIndex);
 
-                    DataRow? joinRow = GetMatchingRow(joinTable, joinOnValue, joinOnPreviousColumnIndex);
+                    DataRow? joinRow = GetMatchingRow(joinTable, joinOnValue, joinOnTableColumnIndex);
                     if (joinRow == null)
                         continue;
 
@@ -570,7 +583,7 @@ namespace CSVDiff.ViewModel
             {
                 Filter = "csv files (*.csv)|*.csv",
                 Title = "Save Diff Result",
-                FileName = $"Diff_{DateTime.Now:yyyyddMM_hhmm}.csv",
+                FileName = $"CSVDiff_{DateTime.Now:yyyyddMM_hhmm}.csv",
             };
 
             if (saveFileDialog.ShowDialog() == false)
