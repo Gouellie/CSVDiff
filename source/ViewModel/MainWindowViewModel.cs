@@ -17,6 +17,7 @@ namespace CSVDiff.ViewModel
     internal class MainWindowViewModel : ObservableObject
     {
         private const string INVALID = "<multi-values>";
+        public static string VersionString => Version.VersionString;
         public RelayCommand<string> LoadFileCommand { get; }
         public RelayCommand<string> ClearFileCommand { get; }
         public ICommand SwapFilesCommand { get; }
