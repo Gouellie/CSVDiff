@@ -8,6 +8,7 @@
         mc:Ignorable="d"
         Icon="/CSVDiff_Logo.ico"
         Title="{Binding VersionString, StringFormat=CSVDiff : v{0}}"
+        MinHeight="400" MinWidth="300"
         Height="800" Width="750">
     <Window.DataContext>
         <vm:MainWindowViewModel/>
@@ -226,16 +227,16 @@
 
                     <ListView.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:MergeableColumnViewModel}">
-                            <Grid MinWidth="100" Height="30" Background="{Binding MergeGroupColor, UpdateSourceTrigger=PropertyChanged}">
+                            <Grid MinWidth="90" Background="{Binding MergeGroupColor, UpdateSourceTrigger=PropertyChanged}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock 
-                                    Margin="4 0 0 0"
+                                    Margin="6 0 0 0"
                                     Text="{Binding}" TextAlignment="Center" VerticalAlignment="Center" Background="White"/>
                                 <CheckBox 
-                                    Margin="4"
+                                    Margin="6"
                                     VerticalAlignment="Center"
                                     Grid.Column="1"
                                     IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"/>
