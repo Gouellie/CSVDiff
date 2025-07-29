@@ -1,9 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace CSVDiff.ViewModel
@@ -27,6 +22,11 @@ namespace CSVDiff.ViewModel
         public int MergeGroup { get => _mergeGroup; set => SetProperty(ref _mergeGroup, value); }
 
         private Brush _mergeGroupColor = groupColor;
+        [Newtonsoft.Json.JsonIgnore]
         public Brush MergeGroupColor { get => _mergeGroupColor; set => SetProperty(ref _mergeGroupColor, value); }
+    }
+
+    public class GhostColumn() : MergeableColumnViewModel("N/A", 0, Brushes.AliceBlue)
+    {
     }
 }

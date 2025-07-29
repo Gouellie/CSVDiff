@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CSVDiff.Managers;
+using CSVDiff.Models;
 using CsvHelper;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
@@ -8,6 +10,7 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -22,6 +25,7 @@ namespace CSVDiff.ViewModel
         public RelayCommand<string> ClearFileCommand { get; }
         public ICommand SwapFilesCommand { get; }
         public ICommand CompareCommand { get; }
+        public ICommand SaveUserSettingsCommand { get; }
         public ICommand ExportDiffCommand { get; }
 
         private FileViewModel? _previousFile;
@@ -53,8 +57,11 @@ namespace CSVDiff.ViewModel
         private FileViewModel? _optionalJoinFile;
         public FileViewModel? OptionalJoinFile{ get => _optionalJoinFile; set => SetProperty(ref _optionalJoinFile, value); }
 
-        public ObservableCollection<ColumnViewModel> JoinOnColumnList { get; } = [];
-        public ObservableCollection<ColumnViewModel> DiffOnColumnList { get; } = [];
+        private bool _isValidColumnMatchFound;
+        public bool IsValidColumnMatchFound { get => _isValidColumnMatchFound; set => SetProperty(ref _isValidColumnMatchFound, value); }
+
+        public ObservableCollection<ColumnViewModel> JoinOnColumnList { get; } = [new GhostColumn()];
+        public ObservableCollection<ColumnViewModel> DiffOnColumnList { get; } = [new GhostColumn()];
         public ObservableCollection<MergeableColumnViewModel> MergeableColumnList { get; } = [];
 
         private bool SuspendRefreshMatchList;
@@ -72,6 +79,8 @@ namespace CSVDiff.ViewModel
             } 
         }
 
+        private SettingsManager SettingsManager { get; }
+
         public MainWindowViewModel()
         {
             CompareCommand = new RelayCommand(Compare);
@@ -81,6 +90,53 @@ namespace CSVDiff.ViewModel
 
             SwapFilesCommand = new RelayCommand(SwapFiles);
             ExportDiffCommand = new RelayCommand(ExportDiff);
+            SaveUserSettingsCommand = new RelayCommand(SaveUserSettings);
+
+            SettingsManager = new SettingsManager();
+
+            LoadOptionalFileIfFound();
+        }
+
+        private bool UpdateSettings()
+        {
+            if (MessageBox.Show(MainWindow.Instance, "Do you wish to override the Settings on disk?", "Update Settings", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
+                return false;
+
+            if (SettingsManager.UserSettings is UserSettings settings)
+            {
+                settings.OptionalJoinFileFullName = OptionalJoinFile?.FileInfo.FullName ?? string.Empty;
+                settings.JoinOnColumnList = [.. JoinOnColumnList.Where(c => c.Selected).Select(l => l.Name)];
+                settings.DiffOnColumnList = [.. DiffOnColumnList.Where(c => c.Selected).Select(l => l.Name)];
+                settings.MergeableColumnList = [.. MergeableColumnList];
+                return true;
+            }
+
+            return false;
+        }
+
+        private void LoadOptionalFileIfFound()
+        {
+            if (SettingsManager.UserSettings is not UserSettings settings)
+                return;
+
+            if (string.IsNullOrWhiteSpace(settings.OptionalJoinFileFullName))
+                return;
+
+            if (System.IO.File.Exists(settings.OptionalJoinFileFullName))
+            {
+                if (TryPeekAtCVS(settings.OptionalJoinFileFullName, out var optionalJoinFile))
+                {
+                    OptionalJoinFile = optionalJoinFile;
+                }
+            }
+        }
+
+        private void SaveUserSettings()
+        {
+            if (UpdateSettings())
+            {
+                SettingsManager?.SaveUserSettings();
+            }
         }
 
         private void LoadFile(string? file)
@@ -127,10 +183,14 @@ namespace CSVDiff.ViewModel
             if (SuspendRefreshMatchList)
                 return;
 
+            IsValidColumnMatchFound = false;
+
             if (PreviousFile == null || LatestFile == null)
             {
                 JoinOnColumnList.Clear();
                 DiffOnColumnList.Clear();
+                JoinOnColumnList.Add(new GhostColumn());
+                DiffOnColumnList.Add(new GhostColumn());
                 return;
             }
 
@@ -145,6 +205,26 @@ namespace CSVDiff.ViewModel
             {
                 JoinOnColumnList.Add(new ColumnViewModel(match));
                 DiffOnColumnList.Add(new ColumnViewModel(match));
+            }
+            
+            if (SettingsManager.UserSettings is UserSettings settings)
+            {
+                foreach (var col in JoinOnColumnList)
+                {
+                    col.Selected = settings.JoinOnColumnList.Contains(col.Name);
+                }
+                foreach (var col in DiffOnColumnList)
+                {
+                    col.Selected = settings.DiffOnColumnList.Contains(col.Name);
+                }
+            }
+
+            IsValidColumnMatchFound = JoinOnColumnList.Count > 0;
+
+            if (!IsValidColumnMatchFound)
+            {
+                JoinOnColumnList.Add(new GhostColumn());
+                DiffOnColumnList.Add(new GhostColumn());
             }
 
             DiffResult = null;

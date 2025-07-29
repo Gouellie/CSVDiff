@@ -9,6 +9,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Configuration;
+using CSVDiff.Models;
 
 namespace CSVDiff
 {
@@ -17,10 +19,12 @@ namespace CSVDiff
     /// </summary>
     public partial class MainWindow : Window
     {
+        public static MainWindow? Instance { get; private set; }
         private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
         public MainWindow()
         {
             InitializeComponent();
+            Instance = this;
         }
 
         private void OnMergeSelection_Button_Click(object sender, RoutedEventArgs e)

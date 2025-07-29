@@ -155,7 +155,7 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:ColumnViewModel}">
-                            <StackPanel Orientation="Horizontal" Margin="2">
+                            <StackPanel Orientation="Horizontal" Margin="2" Style="{StaticResource HideIfNoJoinFound}">
                                 <ToggleButton Content="{Binding}" IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </DataTemplate>
@@ -179,7 +179,7 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:ColumnViewModel}">
-                            <StackPanel Orientation="Horizontal" Margin="2">
+                            <StackPanel Orientation="Horizontal" Margin="2" Style="{StaticResource HideIfNoJoinFound}">
                                 <ToggleButton Content="{Binding}" IsChecked="{Binding Selected, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                         </DataTemplate>
@@ -215,10 +215,10 @@
 
             <StackPanel>
 
-                <ToolBar>
-                    <Button Content="Merge Selection" Click="OnMergeSelection_Button_Click"/>
-                    <Button Content="Unmerge Selection" Click="OnUnmergeSelection_Button_Click"/>
-                </ToolBar>
+                <StackPanel Orientation="Horizontal">
+                    <Button Margin="2" Content="Merge Selection" Click="OnMergeSelection_Button_Click"/>
+                    <Button Margin="2" Content="Unmerge Selection" Click="OnUnmergeSelection_Button_Click"/>
+                </StackPanel>
                 
                 <ListView 
                     x:Name="MergeableColumnListView"
@@ -253,14 +253,25 @@
             </StackPanel>
         </GroupBox>
 
-        <Button Grid.Row="7" 
-            ToolTip="Export Result"
-            Background="Transparent"
-            BorderThickness="0"
-            Command="{Binding ExportDiffCommand, Mode=OneTime}"
-            HorizontalAlignment="Right" VerticalAlignment="Bottom"
-            Content="{DynamicResource ExportIcon}">
-        </Button>
-        
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button  
+                ToolTip="Export Result"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding ExportDiffCommand, Mode=OneTime}"
+                HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Content="{DynamicResource ExportIcon}">
+            </Button>
+        </StackPanel>
+        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Left">
+            <Button  
+                ToolTip="Save Export Settings"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding SaveUserSettingsCommand, Mode=OneTime}"
+                HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Content="{DynamicResource SaveSettingsIcon}">
+            </Button>
+        </StackPanel>
     </Grid>
 </Window>
