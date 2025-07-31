@@ -565,6 +565,43 @@ namespace CSVDiff.ViewModel
             return diffResultWithJoin;
         }
 
+        private static DataTable MergeTableColumns(DataTable table, IList<MergeableColumnViewModel> mergeableColumns)
+        {
+            if (mergeableColumns.All(c => c.Selected) && mergeableColumns.Count == mergeableColumns.Select(c => c.MergeGroup).Distinct().Count())
+                return table;
+
+            var mergedTable = new DataTable();
+
+            foreach (var mergedGroup in mergeableColumns.GroupBy(c => c.MergeGroup))
+            {
+                var mergedValue = string.Join(" ", mergedGroup.Where(c => c.Selected));
+                if (!string.IsNullOrWhiteSpace(mergedValue))
+                {
+                    mergedTable.Columns.Add(mergedValue);
+                }
+            }
+
+            //// Write the rows
+            foreach (DataRow row in table.Rows)
+            {
+                var newRow = mergedTable.NewRow();
+                int colIndex = 0;
+                foreach (var mergedGroup in mergeableColumns.GroupBy(c => c.MergeGroup))
+                {
+                    var indexOfColumns = GetIndexOfColumns(table, mergedGroup.Where(c => c.Selected).Select(c => c.Name)).ToArray();
+                    if (indexOfColumns.Length == 0)
+                        continue;
+
+                    var mergeRowValue = GetJoinOnValue(row, indexOfColumns, " ");
+                    newRow[colIndex] = mergeRowValue;
+                    colIndex++;
+                }
+                mergedTable.Rows.Add(newRow);
+            }
+
+            return mergedTable;
+        }
+
         private static IEnumerable<int> GetIndexOfColumns(DataTable table, IEnumerable<string> columnNames)
         {
             foreach (var columnName in columnNames)
@@ -661,7 +698,7 @@ namespace CSVDiff.ViewModel
 
             SaveFileDialog saveFileDialog = new()
             {
-                Filter = "csv files (*.csv)|*.csv",
+                Filter = "csv files (*.csv)|*.csv|Excel files|*.xlsx",
                 Title = "Save Diff Result",
                 FileName = $"CSVDiff_{DateTime.Now:yyyyddMM_hhmm}.csv",
             };
@@ -669,35 +706,44 @@ namespace CSVDiff.ViewModel
             if (saveFileDialog.ShowDialog() == false)
                 return;
 
-            using var writer = new StreamWriter(saveFileDialog.FileName);
+            var finalTable = MergeTableColumns(DiffResult, MergeableColumnList);
+
+            var extension = System.IO.Path.GetExtension(saveFileDialog.FileName);
+            switch (extension)
+            {
+                case ".csv":
+                    ExportToCSV(saveFileDialog.FileName, finalTable);
+                    break;
+                case ".xlsx":
+                    ExcelExport.ExportFile(saveFileDialog.FileName, finalTable);
+                    break;
+                default:
+                    return;
+            }
+            OpenWithDefaultProgram(saveFileDialog.FileName);
+        }
+
+        private static void ExportToCSV(string fileName, DataTable table)
+        {
+            using var writer = new StreamWriter(fileName);
             using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
 
-            foreach (var mergedGroup in MergeableColumnList.GroupBy(c => c.MergeGroup))
+            // Write the header
+            foreach (DataColumn column in table.Columns)
             {
-                var mergedValue = string.Join(" ", mergedGroup.Where(c => c.Selected));
-                if (!string.IsNullOrWhiteSpace(mergedValue))
-                {
-                    csv.WriteField(mergedValue);
-                }
+                csv.WriteField(column.ColumnName);
             }
             csv.NextRecord();
 
             // Write the rows
-            foreach (DataRow row in DiffResult.Rows)
+            foreach (DataRow row in table.Rows)
             {
-                foreach (var mergedGroup in MergeableColumnList.GroupBy(c => c.MergeGroup))
+                foreach (DataColumn column in table.Columns)
                 {
-                    var indexOfColumns = GetIndexOfColumns(DiffResult, mergedGroup.Where(c => c.Selected).Select(c => c.Name)).ToArray();
-                    if (indexOfColumns.Length == 0)
-                        continue;
-
-                    var mergeRowValue = GetJoinOnValue(row, indexOfColumns, " ");
-                    csv.WriteField(mergeRowValue);
+                    csv.WriteField(row[column]);
                 }
                 csv.NextRecord();
             }
-
-            OpenWithDefaultProgram(saveFileDialog.FileName);
         }
     }
 #pragma warning restore CS8618
