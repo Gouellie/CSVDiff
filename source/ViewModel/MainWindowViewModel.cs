@@ -6,7 +6,6 @@ using CsvHelper;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Data;
-using System.Data.Common;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -236,10 +235,26 @@ namespace CSVDiff.ViewModel
             if (DiffResult == null)
                 return;
 
+            var mergeableColumnByNames = SettingsManager.UserSettings.MergeableColumnList.ToDictionary(m => m.Name, m => m);
+
             for (int col = 0;  col < DiffResult.Columns.Count; col++)
             {
-                SolidColorBrush brush = new(Helpers.GetNewRandomColor(col));
-                MergeableColumnList.Add(new MergeableColumnViewModel(DiffResult.Columns[col].ColumnName, col, brush) { Selected = true });
+                var columnName = DiffResult.Columns[col].ColumnName;
+
+                MergeableColumnViewModel columnViewModel;
+                if (mergeableColumnByNames.TryGetValue(columnName, out var userSettingsColFound))
+                {
+                    columnViewModel = userSettingsColFound;
+                    SolidColorBrush brush = new(Helpers.GetNewRandomColor(columnViewModel.MergeGroup));
+                    columnViewModel.MergeGroupColor = brush;
+                }
+                else
+                {
+                    SolidColorBrush brush = new(Helpers.GetNewRandomColor(col));
+                    columnViewModel = new MergeableColumnViewModel(columnName, col, brush) { Selected = true };
+                }
+
+                MergeableColumnList.Add(columnViewModel);
             }
         }
 
