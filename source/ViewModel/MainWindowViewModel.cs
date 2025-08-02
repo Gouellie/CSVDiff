@@ -101,16 +101,25 @@ namespace CSVDiff.ViewModel
             if (MessageBox.Show(MainWindow.Instance, "Do you wish to override the Settings on disk?", "Update Settings", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
                 return false;
 
-            if (SettingsManager.UserSettings is UserSettings settings)
+            if (SettingsManager.UserSettings is not UserSettings settings)
+                return false;
+
+            settings.OptionalJoinFileFullName = OptionalJoinFile?.FileInfo.FullName ?? string.Empty;
+            settings.JoinOnColumnList = [.. JoinOnColumnList.Where(c => c.Selected).Select(l => l.Name)];
+            settings.DiffOnColumnList = [.. DiffOnColumnList.Where(c => c.Selected).Select(l => l.Name)];
+            settings.MergeableColumnList = [.. MergeableColumnList];
+
+            settings.ExcelExportSettings ??= new();
+
+            foreach (var columnGroup in settings.MergeableColumnList)
             {
-                settings.OptionalJoinFileFullName = OptionalJoinFile?.FileInfo.FullName ?? string.Empty;
-                settings.JoinOnColumnList = [.. JoinOnColumnList.Where(c => c.Selected).Select(l => l.Name)];
-                settings.DiffOnColumnList = [.. DiffOnColumnList.Where(c => c.Selected).Select(l => l.Name)];
-                settings.MergeableColumnList = [.. MergeableColumnList];
-                return true;
+                if (settings.ExcelExportSettings.ColumnSettings.FirstOrDefault(c => c.MergeGroup == columnGroup.MergeGroup) == null)
+                {
+                    settings.ExcelExportSettings.ColumnSettings.Add(new ColumnSettings { MergeGroup = columnGroup.MergeGroup });
+                }
             }
 
-            return false;
+            return true;
         }
 
         private void LoadOptionalFileIfFound()
@@ -730,7 +739,7 @@ namespace CSVDiff.ViewModel
                     ExportToCSV(saveFileDialog.FileName, finalTable);
                     break;
                 case ".xlsx":
-                    ExcelExport.ExportFile(saveFileDialog.FileName, finalTable);
+                    ExcelExport.ExportFile(saveFileDialog.FileName, finalTable, SettingsManager.UserSettings.ExcelExportSettings);
                     break;
                 default:
                     return;
