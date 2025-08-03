@@ -26,6 +26,7 @@ namespace CSVDiff.ViewModel
         public ICommand CompareCommand { get; }
         public ICommand SaveUserSettingsCommand { get; }
         public ICommand ExportDiffCommand { get; }
+        public ICommand EditExportSettingsCommand { get; }
 
         private FileViewModel? _previousFile;
         public FileViewModel? PreviousFile 
@@ -89,6 +90,7 @@ namespace CSVDiff.ViewModel
 
             SwapFilesCommand = new RelayCommand(SwapFiles);
             ExportDiffCommand = new RelayCommand(ExportDiff);
+            EditExportSettingsCommand = new RelayCommand(EditExportSettings);
             SaveUserSettingsCommand = new RelayCommand(SaveUserSettings);
 
             SettingsManager = new SettingsManager();
@@ -96,11 +98,16 @@ namespace CSVDiff.ViewModel
             LoadOptionalFileIfFound();
         }
 
+        private void EditExportSettings()
+        {
+            if (UpdateSettings())
+            {
+                new Views.ExcelExportSettingsView(SettingsManager.UserSettings.ExcelExportSettings).ShowDialog();
+            }
+        }
+
         private bool UpdateSettings()
         {
-            if (MessageBox.Show(MainWindow.Instance, "Do you wish to override the Settings on disk?", "Update Settings", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
-                return false;
-
             if (SettingsManager.UserSettings is not UserSettings settings)
                 return false;
 
@@ -116,6 +123,14 @@ namespace CSVDiff.ViewModel
                 if (settings.ExcelExportSettings.ColumnSettings.FirstOrDefault(c => c.MergeGroup == columnGroup.MergeGroup) == null)
                 {
                     settings.ExcelExportSettings.ColumnSettings.Add(new ColumnSettings { MergeGroup = columnGroup.MergeGroup });
+                }
+            }
+
+            for (int col = settings.ExcelExportSettings.ColumnSettings.Count - 1; col >= 0; col--)
+            {
+                if (!settings.MergeableColumnList.Any(c => settings.ExcelExportSettings.ColumnSettings[col].MergeGroup == c.MergeGroup))
+                {
+                    settings.ExcelExportSettings.ColumnSettings.RemoveAt(col);
                 }
             }
 
@@ -143,22 +158,28 @@ namespace CSVDiff.ViewModel
         {
             if (UpdateSettings())
             {
+                if (MessageBox.Show(MainWindow.Instance, "Do you wish to override the Settings on disk?", "Update Settings", MessageBoxButton.OKCancel) != MessageBoxResult.OK)
+                    return;
+
                 SettingsManager?.SaveUserSettings();
             }
         }
 
         private void LoadFile(string? file)
         {
+            if (LoadFile() is not FileViewModel fileLoaded)
+                return;
+
             switch (file)
             {
                 case "previous":
-                    PreviousFile = LoadFile();
+                    PreviousFile = fileLoaded;
                     break;
                 case "latest":
-                    LatestFile = LoadFile();
+                    LatestFile = fileLoaded;
                     break;
                 case "optional":
-                    OptionalJoinFile = LoadFile();
+                    OptionalJoinFile = fileLoaded;
                     break;
             }
         }

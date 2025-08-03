@@ -198,6 +198,7 @@
             Grid.Row="3" 
             Margin="5 10"
             Height="30"
+            BorderThickness="0"
             Command="{Binding CompareCommand, Mode=OneTime}" Content="Compare"/>
 
         <GroupBox Grid.Row="4" Header="Preview">
@@ -211,13 +212,17 @@
             </DataGrid>
         </GroupBox>
 
-        <GroupBox Grid.Row="6" Header="Export Options">
+        <GroupBox Grid.Row="6" Header="Export Options" IsEnabled="{Binding DiffResult, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ValueNotNullToBooleanConverter}}">
 
             <StackPanel>
 
                 <StackPanel Orientation="Horizontal">
-                    <Button Margin="2" Content="Merge Selection" Click="OnMergeSelection_Button_Click"/>
-                    <Button Margin="2" Content="Unmerge Selection" Click="OnUnmergeSelection_Button_Click"/>
+                    <Button Margin="2" Padding="2"
+                            BorderThickness="0"
+                            Content="Merge Selection" Click="OnMergeSelection_Button_Click"/>
+                    <Button Margin="2" Padding="2"
+                            BorderThickness="0"
+                            Content="Unmerge Selection" Click="OnUnmergeSelection_Button_Click"/>
                 </StackPanel>
                 
                 <ListView 
@@ -253,25 +258,30 @@
             </StackPanel>
         </GroupBox>
 
-        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button  
-                ToolTip="Export Result"
-                Background="Transparent"
-                BorderThickness="0"
-                Command="{Binding ExportDiffCommand, Mode=OneTime}"
-                HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                Content="{DynamicResource ExportIcon}">
-            </Button>
-        </StackPanel>
-        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Left">
-            <Button  
-                ToolTip="Save Export Settings"
-                Background="Transparent"
-                BorderThickness="0"
-                Command="{Binding SaveUserSettingsCommand, Mode=OneTime}"
-                HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                Content="{DynamicResource SaveSettingsIcon}">
-            </Button>
-        </StackPanel>
+        <Grid Grid.Row="7" IsEnabled="{Binding DiffResult, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource ValueNotNullToBooleanConverter}}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button  
+                    ToolTip="Export Result"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding ExportDiffCommand, Mode=OneTime}"
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Content="{DynamicResource ExportIcon}">
+                </Button>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                <Button 
+                    Background="Transparent" BorderThickness="0"
+                    Padding="5 0" Content="Edit Export Settings" Command="{Binding EditExportSettingsCommand, Mode=OneTime}"/>
+                <Button  
+                    ToolTip="Save Export Settings"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Command="{Binding SaveUserSettingsCommand, Mode=OneTime}"
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                    Content="{DynamicResource SaveSettingsIcon}">
+                </Button>
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

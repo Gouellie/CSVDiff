@@ -1,4 +1,6 @@
 ﻿
+using System.Windows.Media;
+
 namespace CSVDiff.Models
 {
     public class ColumnSettings
@@ -8,6 +10,9 @@ namespace CSVDiff.Models
         public int FontSize { get; set; } = 16;
         public bool WrapText { get; set; }
         public bool Bold { get; set; }
+
+        [Newtonsoft.Json.JsonIgnore]
+        public Brush? MergeGroupColor => new SolidColorBrush(Helpers.GetNewRandomColor(MergeGroup));
     }
 
     public class ExcelExportSettings

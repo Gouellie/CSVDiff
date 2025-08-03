@@ -24,5 +24,6 @@
             </Style.Triggers>
             <Setter Property="Visibility" Value="Hidden"/>
         </Style>
+        <local:ValueNotNullToBooleanConverter x:Key="ValueNotNullToBooleanConverter"/>
     </Application.Resources>
 </Application>
