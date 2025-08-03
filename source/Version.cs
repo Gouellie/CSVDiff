@@ -3,6 +3,6 @@ namespace CSVDiff
 {
     internal static class Version
     {
-        public const string VersionString = "0.2.1";
+        public const string VersionString = "0.3.0";
     }
 }
