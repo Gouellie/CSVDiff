@@ -35,52 +35,56 @@
             ItemsSource="{Binding ColumnSettings, Mode=OneTime}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:ColumnSettings}">
-                        <Border Margin="2" Background="{Binding MergeGroupColor, Mode=OneTime}" CornerRadius="10">
-                            <Grid Margin="5">
-                                <Grid.RowDefinitions>
-                                    <RowDefinition/>
-                                    <RowDefinition/>
-                                </Grid.RowDefinitions>
+                        <Border Margin="2" Background="{Binding MergeGroupColor, Mode=OneTime}" CornerRadius="5">
 
-                                <Grid Margin="5">
+                            <Border Margin="8" Background="White" CornerRadius="5">
+                                <Grid >
                                     <Grid.RowDefinitions>
                                         <RowDefinition/>
                                         <RowDefinition/>
                                     </Grid.RowDefinitions>
 
-                                    <GroupBox Header="Font Size">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="50" />
-                                                <ColumnDefinition />
-                                            </Grid.ColumnDefinitions>
-                                            <Label Content="{Binding FontSize, UpdateSourceTrigger=PropertyChanged}"/>
-                                            <Slider Grid.Column="1" Value="{Binding FontSize}" Minimum="6" Maximum="30"/>
-                                        </Grid>
-                                    </GroupBox>
+                                    <Grid Margin="5">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
 
-                                    <GroupBox Header="Column Width" Grid.Row="1">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="50" />
-                                                <ColumnDefinition />
-                                            </Grid.ColumnDefinitions>
-                                            <TextBox Text="{Binding ColWidth, UpdateSourceTrigger=PropertyChanged}"/>
-                                            <Slider Grid.Column="1" Value="{Binding ColWidth}" Minimum="0" Maximum="200" TickFrequency="0.25" IsSnapToTickEnabled="True"/>
-                                        </Grid>
-                                    </GroupBox>
+                                        <GroupBox Header="Font Size">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50" />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <Label Content="{Binding FontSize, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Slider Grid.Column="1" Value="{Binding FontSize}" Minimum="6" Maximum="30"/>
+                                            </Grid>
+                                        </GroupBox>
 
+                                        <GroupBox Header="Column Width" Grid.Row="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50" />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBox Text="{Binding ColWidth, UpdateSourceTrigger=PropertyChanged}"/>
+                                                <Slider Grid.Column="1" Value="{Binding ColWidth}" Minimum="0" Maximum="200" TickFrequency="0.25" IsSnapToTickEnabled="True"/>
+                                            </Grid>
+                                        </GroupBox>
+
+                                    </Grid>
+
+                                    <Grid Grid.Row="1" Margin="5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <CheckBox Grid.Column="0" Content="Bold" IsChecked="{Binding Bold}"/>
+                                        <CheckBox Grid.Column="1" Content="Wrap Text" IsChecked="{Binding WrapText}"/>
+                                    </Grid>
                                 </Grid>
+                            </Border>
 
-                                <Grid Grid.Row="1" Margin="5">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition/>
-                                        <ColumnDefinition/>
-                                    </Grid.ColumnDefinitions>
-                                    <CheckBox Grid.Column="0" Content="Bold" IsChecked="{Binding Bold}"/>
-                                    <CheckBox Grid.Column="1" Content="Wrap Text" IsChecked="{Binding WrapText}"/>
-                                </Grid>
-                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

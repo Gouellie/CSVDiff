@@ -743,9 +743,9 @@ namespace CSVDiff.ViewModel
 
             SaveFileDialog saveFileDialog = new()
             {
-                Filter = "csv files (*.csv)|*.csv|Excel files|*.xlsx",
+                Filter = "Excel files|*.xlsx|csv files (*.csv)|*.csv",
                 Title = "Save Diff Result",
-                FileName = $"CSVDiff_{DateTime.Now:yyyyddMM_hhmm}.csv",
+                FileName = $"CSVDiff_{DateTime.Now:yyyyddMM_hhmm}.xlsx",
             };
 
             if (saveFileDialog.ShowDialog() == false)
