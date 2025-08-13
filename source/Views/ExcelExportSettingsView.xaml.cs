@@ -19,12 +19,32 @@ namespace CSVDiff.Views
     /// </summary>
     public partial class ExcelExportSettingsView : Window
     {
+        public Models.ExcelExportSettings UpdatedSettings { get; }
+        public bool Save { get; private set; }
+
         public ExcelExportSettingsView(Models.ExcelExportSettings excelExportSettings)
         {
             InitializeComponent();
             Owner = MainWindow.Instance;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            DataContext = excelExportSettings;
+            UpdatedSettings = new Models.ExcelExportSettings(excelExportSettings);
+            DataContext = UpdatedSettings;
+        }
+
+        private void Cancel_Button_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = false;
+        }
+
+        private void Accept_Button_Click(object sender, RoutedEventArgs e)
+        {
+            DialogResult = true;
+        }
+
+        private void AcceptAndSave_Button_Click(object sender, RoutedEventArgs e)
+        {
+            Save = true;
+            DialogResult = true;
         }
     }
 }

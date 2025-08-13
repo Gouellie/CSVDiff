@@ -102,7 +102,15 @@ namespace CSVDiff.ViewModel
         {
             if (UpdateSettings())
             {
-                new Views.ExcelExportSettingsView(SettingsManager.UserSettings.ExcelExportSettings).ShowDialog();
+                var settingsDialog = new Views.ExcelExportSettingsView(SettingsManager.UserSettings.ExcelExportSettings);
+                if (settingsDialog.ShowDialog().GetValueOrDefault())
+                {
+                    SettingsManager.UserSettings.ExcelExportSettings = settingsDialog.UpdatedSettings;
+                    if (settingsDialog.Save)
+                    {
+                        SaveUserSettings();
+                    }
+                }
             }
         }
 

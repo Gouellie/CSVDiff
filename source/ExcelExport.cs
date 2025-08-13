@@ -38,6 +38,9 @@ namespace CSVDiff
                         range.Style.Font.Bold = colSetting.Bold;
                         range.Style.Font.Size = colSetting.FontSize;
 
+                        range.Style.HorizontalAlignment = GetHorizontalAlignment(colSetting.HorizontalAlignment);
+                        range.Style.VerticalAlignment = GetVerticalAlignment(colSetting.VerticalAlignment);
+
                         if (colSetting.ColWidth > 0)
                         {
                             sheet.Columns[col + 1].Width = colSetting.ColWidth;
@@ -67,6 +70,34 @@ namespace CSVDiff
             fullRange.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
 
             package.Save();
+        }
+
+        private static OfficeOpenXml.Style.ExcelHorizontalAlignment GetHorizontalAlignment(Models.ExcelHorizontalAlignment excelHorizontalAlignment)
+        {
+            return excelHorizontalAlignment switch
+            {
+                Models.ExcelHorizontalAlignment.General => OfficeOpenXml.Style.ExcelHorizontalAlignment.General,
+                Models.ExcelHorizontalAlignment.Left => OfficeOpenXml.Style.ExcelHorizontalAlignment.Left,
+                Models.ExcelHorizontalAlignment.Center => OfficeOpenXml.Style.ExcelHorizontalAlignment.Center,
+                Models.ExcelHorizontalAlignment.Right => OfficeOpenXml.Style.ExcelHorizontalAlignment.Right,
+                Models.ExcelHorizontalAlignment.Fill => OfficeOpenXml.Style.ExcelHorizontalAlignment.Fill,
+                Models.ExcelHorizontalAlignment.Distributed => OfficeOpenXml.Style.ExcelHorizontalAlignment.Distributed,
+                Models.ExcelHorizontalAlignment.Justify => OfficeOpenXml.Style.ExcelHorizontalAlignment.Justify,
+                _ => OfficeOpenXml.Style.ExcelHorizontalAlignment.General,
+            };
+        }
+
+        private static OfficeOpenXml.Style.ExcelVerticalAlignment GetVerticalAlignment(Models.ExcelVerticalAlignment excelVerticalAlignment)
+        {
+            return excelVerticalAlignment switch
+            {
+                Models.ExcelVerticalAlignment.Top => OfficeOpenXml.Style.ExcelVerticalAlignment.Top,
+                Models.ExcelVerticalAlignment.Center => OfficeOpenXml.Style.ExcelVerticalAlignment.Center,
+                Models.ExcelVerticalAlignment.Bottom => OfficeOpenXml.Style.ExcelVerticalAlignment.Bottom,
+                Models.ExcelVerticalAlignment.Distributed => OfficeOpenXml.Style.ExcelVerticalAlignment.Distributed,
+                Models.ExcelVerticalAlignment.Justify => OfficeOpenXml.Style.ExcelVerticalAlignment.Justify,
+                _ => OfficeOpenXml.Style.ExcelVerticalAlignment.Bottom,
+            };
         }
     }
 }
