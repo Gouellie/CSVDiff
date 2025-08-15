@@ -155,7 +155,7 @@ namespace CSVDiff.ViewModel
 
             if (System.IO.File.Exists(settings.OptionalJoinFileFullName))
             {
-                if (TryPeekAtCVS(settings.OptionalJoinFileFullName, out var optionalJoinFile))
+                if (TryPeekAtCSV(settings.OptionalJoinFileFullName, out var optionalJoinFile))
                 {
                     OptionalJoinFile = optionalJoinFile;
                 }
@@ -233,7 +233,10 @@ namespace CSVDiff.ViewModel
 
             List<string> matches = [.. LatestFile.Headers.Where(PreviousFile.Headers.Contains)];
             if (JoinOnColumnList.Count == matches.Count && matches.All(m => JoinOnColumnList.Select(c => c.Name).Contains(m)))
+            {
+                IsValidColumnMatchFound = true;
                 return;
+            }
 
             JoinOnColumnList.Clear();
             DiffOnColumnList.Clear();
@@ -300,7 +303,7 @@ namespace CSVDiff.ViewModel
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = "csv files (*.csv)|*.csv|All files (*.*)|*.*",
+                Filter = "csv files (*.csv;*.xlsx)|*.csv;*.xlsx|All files (*.*)|*.*",
                 RestoreDirectory = true,
                 Multiselect = false,
             };
@@ -321,7 +324,7 @@ namespace CSVDiff.ViewModel
             {
                 if (TryBrowseForFile(out string selectedFilepath))
                 {
-                    if (TryPeekAtCVS(selectedFilepath, out var newFileViewModel))
+                    if (TryPeekAtCSV(selectedFilepath, out var newFileViewModel))
                     {
                         return newFileViewModel;
                     }
@@ -334,7 +337,46 @@ namespace CSVDiff.ViewModel
             return null;
         }
 
-        private static bool TryPeekAtCVS(string filepath, out FileViewModel? fileViewModel)
+        private static bool ReadCSV(FileInfo streamFile, out FileViewModel? fileViewModel)
+        {
+            using var reader = new StreamReader(streamFile.FullName);
+            using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+
+            if (csv.Read() && csv.ReadHeader())
+            {
+                var fields = GetFields(csv).Where(f => string.IsNullOrWhiteSpace(f) == false).ToList();
+                using var dr = new CsvDataReader(csv);
+                var dataTable = new DataTable();
+                dataTable.Load(dr);
+
+                for (int col = dataTable.Columns.Count - 1; col >= 0; col--)
+                {
+                    if (fields.Contains(dataTable.Columns[col].ColumnName) == false)
+                    {
+                        dataTable.Columns.RemoveAt(col);
+                    }
+                }
+
+                fileViewModel = new FileViewModel(streamFile, fields, dataTable);
+                return true;
+            }
+
+            fileViewModel = default;
+            return false;
+
+            static IEnumerable<string> GetFields(CsvReader csv)
+            {
+                for (int i = 0; i < csv.ColumnCount; i++)
+                {
+                    if (csv.GetField(i) is string field)
+                    {
+                        yield return field;
+                    }
+                }
+            }
+        }
+
+        private static bool TryPeekAtCSV(string filepath, out FileViewModel? fileViewModel)
         {
             fileViewModel = default;
             if (!System.IO.File.Exists(filepath))
@@ -352,26 +394,14 @@ namespace CSVDiff.ViewModel
                     isUsingCopy = true;
                 }
 
-                using var reader = new StreamReader(streamFile.FullName);
-                using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
-
-                if (csv.Read() && csv.ReadHeader())
+                var extension = System.IO.Path.GetExtension(streamFile.FullName);
+                if (extension.EndsWith("csv")) 
                 {
-                    var fields = GetFields(csv).Where(f => string.IsNullOrWhiteSpace(f) == false).ToList();
-                    using var dr = new CsvDataReader(csv);
-                    var dataTable = new DataTable();
-                    dataTable.Load(dr);
-
-                    for (int col = dataTable.Columns.Count - 1; col >= 0; col--)
-                    {
-                        if (fields.Contains(dataTable.Columns[col].ColumnName) == false)
-                        {
-                            dataTable.Columns.RemoveAt(col);
-                        }
-                    }
-
-                    fileViewModel = new FileViewModel(streamFile, fields, dataTable);
-                    return true;
+                    return ReadCSV(streamFile, out fileViewModel);
+                }
+                if (extension.EndsWith("xlsx"))
+                {
+                    return ExcelUtils.ReadExcel(streamFile, out fileViewModel);
                 }
             }
             catch
@@ -387,17 +417,6 @@ namespace CSVDiff.ViewModel
             }
 
             return false;
-
-            static IEnumerable<string> GetFields(CsvReader csv)
-            {
-                for (int i = 0; i < csv.ColumnCount; i++)
-                {
-                    if (csv.GetField(i) is string field)
-                    {
-                        yield return field;
-                    }
-                }
-            }
         }
 
         private void Compare()
@@ -768,7 +787,7 @@ namespace CSVDiff.ViewModel
                     ExportToCSV(saveFileDialog.FileName, finalTable);
                     break;
                 case ".xlsx":
-                    ExcelExport.ExportFile(saveFileDialog.FileName, finalTable, SettingsManager.UserSettings.ExcelExportSettings);
+                    ExcelUtils.ExportFile(saveFileDialog.FileName, finalTable, SettingsManager.UserSettings.ExcelExportSettings);
                     break;
                 default:
                     return;

@@ -1,5 +1,7 @@
 ﻿using CSVDiff.Models;
+using CSVDiff.ViewModel;
 using OfficeOpenXml;
+using OfficeOpenXml.Export.ToDataTable;
 using OfficeOpenXml.Style;
 using OfficeOpenXml.Table;
 using System.Data;
@@ -7,8 +9,43 @@ using System.IO;
 
 namespace CSVDiff
 {
-    internal class ExcelExport
+    internal class ExcelUtils
     {
+        public static bool ReadExcel(FileInfo streamFile, out FileViewModel? fileViewModel)
+        {
+            ExcelPackage.License.SetNonCommercialPersonal("CSVDiff");
+            using var package = new ExcelPackage(streamFile.FullName);
+            var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+            if (worksheet == null)
+            {
+                fileViewModel = default;
+                return false;
+            }
+
+            int colStart = worksheet.Dimension.Start.Column;
+            int rowStart = worksheet.Dimension.Start.Row;
+
+            int colEnd = worksheet.Dimension.End.Column;
+            int rowEnd = worksheet.Dimension.End.Row;
+
+            var fields = new List<string>();
+            for (int col = colStart; col <= colEnd; col++)
+            {
+                var value = worksheet.Cells[rowStart, col].Value?.ToString();
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    worksheet.Cells[rowStart, col].Value = value = $"Column - {col}";
+                }
+                fields.Add(value);
+            }
+
+            var options = ToDataTableOptions.Create(o => { o.AlwaysAllowNull = true; o.AllowDuplicateColumnNames = true; });
+            var dataTable = worksheet.Cells[rowStart, colStart, rowEnd, colEnd].ToDataTable(options);
+
+            fileViewModel = new FileViewModel(streamFile, fields, dataTable);
+            return true;
+        }
+
         public static void ExportFile(string filePath, DataTable dataTable, ExcelExportSettings exportSettings)
         {
             var fileInfo = new FileInfo(filePath);
@@ -22,18 +59,18 @@ namespace CSVDiff
 
             ExcelPackage.License.SetNonCommercialPersonal("CSVDiff");
             using var package = new ExcelPackage(filePath);
-            var sheet = package.Workbook.Worksheets.Add("Default");
-            sheet.Cells["A1"].LoadFromDataTable(dataTable, true, TableStyles.None);
+            var worksheet = package.Workbook.Worksheets.Add("Default");
+            worksheet.Cells["A1"].LoadFromDataTable(dataTable, true, TableStyles.None);
 
             if (exportSettings != null)
             {
-                if (exportSettings.ColumnSettings.Count == sheet.Dimension.Columns)
+                if (exportSettings.ColumnSettings.Count == worksheet.Dimension.Columns)
                 {
                     for (int col = 0; col < exportSettings.ColumnSettings.Count; col++)
                     {
                         var colSetting = exportSettings.ColumnSettings[col];
 
-                        var range = sheet.Cells[1, col + 1, sheet.Dimension.Rows, col + 1];
+                        var range = worksheet.Cells[1, col + 1, worksheet.Dimension.Rows, col + 1];
                         range.Style.WrapText = colSetting.WrapText;
                         range.Style.Font.Bold = colSetting.Bold;
                         range.Style.Font.Size = colSetting.FontSize;
@@ -43,7 +80,7 @@ namespace CSVDiff
 
                         if (colSetting.ColWidth > 0)
                         {
-                            sheet.Columns[col + 1].Width = colSetting.ColWidth;
+                            worksheet.Columns[col + 1].Width = colSetting.ColWidth;
                         }
                         else
                         {
@@ -54,14 +91,14 @@ namespace CSVDiff
 
                 if (exportSettings.RowHeight > 0)
                 {
-                    foreach (var row in sheet.Rows)
+                    foreach (var row in worksheet.Rows)
                     {
                         row.Height = exportSettings.RowHeight;
                     }
                 }
             }
 
-            var fullRange = sheet.Dimension;
+            var fullRange = worksheet.Dimension;
 
             // Assign borders
             fullRange.Style.Border.Top.Style = ExcelBorderStyle.Thin;
